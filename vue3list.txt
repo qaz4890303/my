@@ -1,0 +1,164 @@
+<template>
+  <div class="home">
+    <van-tabs v-model="active" @click-tab="onClickTab" sticky>
+      <van-tab title="标签 1" ref="checkbox" class="content">
+        <van-list
+          v-model="loading"
+          :finished="finished"
+          finished-text="没有更多了"
+          @load="onLoad"
+        >
+          <van-card
+            v-for="(item, index) in listData"
+            :key="index"
+            num="2"
+            price="2.00"
+            desc="描述信息"
+            :title="item.itemtitle"
+            :thumb="item.taobao_image"
+          />
+        </van-list>
+      </van-tab>
+      <van-tab title="标签 2">
+        <van-list
+          v-model="loading"
+          :finished="finished"
+          finished-text="没有更多了"
+          @load="onLoad"
+        >
+          <van-card
+            v-for="(item, index) in listDatas"
+            :key="index"
+            num="2"
+            price="2.00"
+            desc="描述信息"
+            :title="item.goodsname"
+            :thumb="item.itempic"
+          />
+        </van-list>
+      </van-tab>
+      <van-tab title="标签 3">内容 3</van-tab>
+      <van-tab title="标签 4">内容 4</van-tab>
+    </van-tabs>
+  </div>
+</template>
+
+<script>
+// @ is an alias to /src
+import tool from '../utils/util.js'
+import HelloWorld from '@/components/HelloWorld.vue'
+import { ref, getCurrentInstance, reactive, toRefs, nextTick } from 'vue'
+export default {
+  name: 'Home',
+  components: {
+    HelloWorld,
+  },
+  setup () {
+    const { proxy, appContext } = getCurrentInstance()
+    const { Toast, Dialog } = appContext.components
+    const listData = ref([])
+    const listDatas = ref([])
+    var list = [
+      { page: 1, top: 0 },
+      { page: 1, top: 0 }
+    ]
+
+    const state = reactive({
+      active: 0,
+      loading: false,
+      finished: false,
+    })
+    const onClickTab = (e) => {
+      const { name } = e
+      state.active = name
+
+      console.log(list[name].top)
+
+      nextTick(() => {
+        window.scrollTo({
+          // y方向坐标800px（代码中不需要写明单位）
+          top: list[name].top,
+          // 滚动方式是平滑滚动 默认是auto 即instant 直接跳到目标位置  不常用
+          behavior: "smooth",
+        })
+      })
+    }
+
+
+
+    window.addEventListener('scroll', tool.debounce(function (res) {
+      console.log(state)
+      console.log(res)
+      console.log('滚动高度', window.pageYOffset)
+      list[state.active].top = window.pageYOffset
+
+    }, 1000))
+
+    const onLoad = () => {
+      console.log(state.loading)
+      getData(list[state.active].page)
+  
+      
+    }
+
+    const getData = (page) => {
+      let url = state.active ? 'https://v2.api.haodanku.com/jd_goods_search?keyword=&min_id=' + page + '&apikey=remaitoday' : 'https://v2.api.haodanku.com/supersearch?keyword=&min_id=' + page + '&apikey=remaitoday'
+      proxy.$http.get(url).then(res => {
+
+        if (state.active) {
+          listDatas.value = [...listDatas.value, ...res]
+
+        } else {
+          listData.value = [...listData.value, ...res]
+        }
+        state.loading = false
+        console.log(state.active)
+        list[state.active].page++
+        console.log(list[state.active].page)
+
+
+        //  nextTick(() => {             
+        //       const $content = document.querySelector('.van-tabs__content'); // 列表的外层容器
+        //       const scrollTop = $content ? $content.scrollTop : 0;
+        //       console.log(scrollTop)
+        //   })
+      }).catch(err => {
+        console.log(err)
+
+        // Dialog({ message: '提示' });
+        Toast.fail(err)
+      })
+      // try {
+      //   const res = await proxy.$http.get('https://v2.api.haodanku.com/supersearch?keyword=&min_id=1&apikey=remaitoday')
+      //   listData.value = res
+      // } catch(err){
+      //   console.log(err)
+      //   Toast.fail(err);
+      // }
+
+    }
+
+    //getData(1)
+
+    return {
+      listData,
+      listDatas,
+      onClickTab,
+
+      onLoad,
+      ...toRefs(state)
+    }
+  }
+};
+</script>
+
+<style scoped>
+.demo {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+img {
+  width: 150px;
+}
+</style>
